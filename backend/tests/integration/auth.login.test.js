@@ -77,6 +77,12 @@ describe('POST /auth/login Integration Tests', () => {
     mockUserDB = [];
     mockTokenDB = [];
 
+    // Reset rate limiter IP store to avoid rate-limiting test failures
+    const { ipStore } = require('../../src/middleware/rateLimiter');
+    for (const key in ipStore) {
+      delete ipStore[key];
+    }
+
     // Seed organization and user
     const mockOrgId = new mongoose.Types.ObjectId();
     const mockUserId = new mongoose.Types.ObjectId();

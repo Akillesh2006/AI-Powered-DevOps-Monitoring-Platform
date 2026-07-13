@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const { register, login, refresh, logout } = require('../controllers/auth.controller');
 const authenticate = require('../middleware/authenticate');
+const { loginLimiter, registerLimiter } = require('../middleware/rateLimiter');
 
 // POST /auth/register - Register a new organization and admin account
-router.post('/register', register);
+router.post('/register', registerLimiter, register);
 
 // POST /auth/login - Authenticate a user and return tokens
-router.post('/login', login);
+router.post('/login', loginLimiter, login);
 
 // POST /auth/refresh - Rotate a refresh token and return new tokens
 router.post('/refresh', refresh);

@@ -78,6 +78,11 @@ describe('POST /auth/register Integration Tests', () => {
     mockOrgDB = [];
     mockUserDB = [];
     mockTokenDB = [];
+    // Reset rate limiter IP store to avoid rate-limiting test failures
+    const { ipStore } = require('../../src/middleware/rateLimiter');
+    for (const key in ipStore) {
+      delete ipStore[key];
+    }
   });
 
   test('should successfully register a new organization and admin account', async () => {
