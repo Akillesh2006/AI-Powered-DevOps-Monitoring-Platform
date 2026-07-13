@@ -29,6 +29,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/auth', require('./routes/auth.routes'));
 app.use('/organizations', require('./routes/organizations.routes'));
+app.use('/users', require('./routes/users.routes'));
 
 // Start server
 if (require.main === module) {
