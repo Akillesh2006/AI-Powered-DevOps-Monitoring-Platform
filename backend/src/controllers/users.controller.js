@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 const User = require('../models/User');
-const { hashPassword } = require('../utils/password');
+const { hashPassword, comparePassword } = require('../utils/password');
 const {
   scopedFind,
   scopedFindOne,
@@ -282,9 +282,155 @@ async function deleteUser(req, res, next) {
   }
 }
 
+/**
+ * Validates password strength (min 8 chars, must contain uppercase, lowercase, and number)
+ */
+function isStrongPassword(password) {
+  if (!password || password.length < 8) return false;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  return hasUpper && hasLower && hasNumber;
+}
+
+/**
+ * GET /users/me
+ * 
+ * Retrieves the profile details of the authenticated caller.
+ */
+async function getSelfProfile(req, res, next) {
+  try {
+    const { userId } = req.context;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'RESOURCE_NOT_FOUND',
+          message: 'User profile not found',
+          details: []
+        }
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: user._id.toString(),
+        name: user.name || '',
+        email: user.email,
+        role: user.role,
+        orgId: user.orgId ? user.orgId.toString() : null
+      }
+    });
+
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * PATCH /users/me
+ * 
+ * Allows self-updating profile details (name) and changing password.
+ */
+async function updateSelfProfile(req, res, next) {
+  const { name, currentPassword, newPassword } = req.body;
+  const { userId } = req.context;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'RESOURCE_NOT_FOUND',
+          message: 'User profile not found',
+          details: []
+        }
+      });
+    }
+
+    // 1. If password change is requested
+    if (newPassword !== undefined) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Current password is required to change password',
+            details: []
+          }
+        });
+      }
+
+      // Verify current password
+      const isMatch = await comparePassword(currentPassword, user.passwordHash);
+      if (!isMatch) {
+        return res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Incorrect current password',
+            details: []
+          }
+        });
+      }
+
+      // Validate new password strength
+      if (!isStrongPassword(newPassword)) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'New password does not meet complexity requirements',
+            details: ['Password must be at least 8 characters long and contain uppercase, lowercase, and numeric characters']
+          }
+        });
+      }
+
+      user.passwordHash = await hashPassword(newPassword);
+    }
+
+    // 2. If name update is requested
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length > 100) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Name cannot exceed 100 characters',
+            details: []
+          }
+        });
+      }
+      user.name = name.trim();
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: user._id.toString(),
+        name: user.name || '',
+        email: user.email,
+        role: user.role,
+        orgId: user.orgId ? user.orgId.toString() : null
+      }
+    });
+
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   getUsers,
   inviteUser,
   updateUserRole,
-  deleteUser
+  deleteUser,
+  getSelfProfile,
+  updateSelfProfile
 };

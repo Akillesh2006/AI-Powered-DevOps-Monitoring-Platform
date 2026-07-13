@@ -1,8 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const { getUsers, inviteUser, updateUserRole, deleteUser } = require('../controllers/users.controller');
+const {
+  getUsers,
+  inviteUser,
+  updateUserRole,
+  deleteUser,
+  getSelfProfile,
+  updateSelfProfile
+} = require('../controllers/users.controller');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
+
+// GET /users/me - Retrieve caller's own profile
+router.get('/me', authenticate, getSelfProfile);
+
+// PATCH /users/me - Update caller's own profile details/password
+router.patch('/me', authenticate, updateSelfProfile);
 
 // GET /users - List users in caller's org
 router.get('/', authenticate, authorize('users', 'list'), getUsers);
