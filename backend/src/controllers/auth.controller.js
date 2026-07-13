@@ -1,8 +1,9 @@
 const Organization = require('../models/Organization');
 const User = require('../models/User');
+const RefreshToken = require('../models/RefreshToken');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { generateAccessToken } = require('../utils/jwt');
-const { issueRefreshToken } = require('../services/refreshTokenService');
+const { issueRefreshToken, rotateRefreshToken, hashToken } = require('../services/refreshTokenService');
 
 /**
  * Validates password strength (min 8 chars, must contain uppercase, lowercase, and number)
@@ -219,7 +220,145 @@ async function login(req, res, next) {
   }
 }
 
+/**
+ * POST /auth/refresh
+ * 
+ * Rotates a refresh token and issues a new access/refresh token pair.
+ */
+async function refresh(req, res, next) {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({
+      success: false,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Refresh token is required',
+        details: []
+      }
+    });
+  }
+
+  try {
+    const tokenHash = hashToken(refreshToken);
+    const storedToken = await RefreshToken.findOne({ tokenHash });
+
+    if (!storedToken) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid refresh token',
+          details: []
+        }
+      });
+    }
+
+    let newRefreshToken;
+    try {
+      newRefreshToken = await rotateRefreshToken(refreshToken);
+    } catch (err) {
+      if (err.code === 'REUSE_DETECTED') {
+        return res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Refresh token reuse detected',
+            details: []
+          }
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: err.message,
+          details: []
+        }
+      });
+    }
+
+    const user = await User.findById(storedToken.userId);
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User account is invalid or deactivated',
+          details: []
+        }
+      });
+    }
+
+    const accessToken = generateAccessToken({
+      userId: user._id,
+      orgId: user.orgId,
+      role: user.role
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        accessToken,
+        refreshToken: newRefreshToken
+      }
+    });
+
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * POST /auth/logout
+ * 
+ * Revokes a specific refresh token session.
+ */
+async function logout(req, res, next) {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Refresh token is required to logout',
+        details: []
+      }
+    });
+  }
+
+  try {
+    const tokenHash = hashToken(refreshToken);
+    const storedToken = await RefreshToken.findOne({ tokenHash });
+
+    if (storedToken) {
+      // Ensure user owns this token session
+      if (storedToken.userId.toString() !== req.context.userId.toString()) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'You are not authorized to revoke this token',
+            details: []
+          }
+        });
+      }
+
+      storedToken.revoked = true;
+      await storedToken.save();
+    }
+
+    return res.status(204).end();
+
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   register,
-  login
+  login,
+  refresh,
+  logout
 };
