@@ -1,6 +1,6 @@
 const Organization = require('../models/Organization');
 const User = require('../models/User');
-const { hashPassword } = require('../utils/password');
+const { hashPassword, comparePassword } = require('../utils/password');
 const { generateAccessToken } = require('../utils/jwt');
 const { issueRefreshToken } = require('../services/refreshTokenService');
 
@@ -140,6 +140,86 @@ async function register(req, res, next) {
   }
 }
 
+/**
+ * POST /auth/login
+ * 
+ * Authenticates a user using credentials and returns tokens.
+ */
+async function login(req, res, next) {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Email and password are required',
+        details: []
+      }
+    });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    const user = await User.findOne({ email: cleanEmail });
+
+    // Enumeration-safe dummy hash for comparison timing if user not found
+    const dummyHash = '$2b$12$12345678901234567890123456789012345678901234567890123';
+    const targetHash = user ? user.passwordHash : dummyHash;
+
+    const isMatch = await comparePassword(password, targetHash);
+
+    if (!user || !isMatch) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid email or password',
+          details: []
+        }
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Account is deactivated',
+          details: []
+        }
+      });
+    }
+
+    const accessToken = generateAccessToken({
+      userId: user._id,
+      orgId: user.orgId,
+      role: user.role
+    });
+
+    const refreshToken = await issueRefreshToken(user._id, user.orgId);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          role: user.role,
+          orgId: user.orgId ? user.orgId.toString() : null
+        },
+        accessToken,
+        refreshToken
+      }
+    });
+
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
-  register
+  register,
+  login
 };
