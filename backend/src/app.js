@@ -26,6 +26,9 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Routes
+app.use('/auth', require('./routes/auth.routes'));
+
 // Start server
 if (require.main === module) {
   app.listen(PORT, () => {
