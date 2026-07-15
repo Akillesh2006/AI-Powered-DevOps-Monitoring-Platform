@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 require('dotenv').config();
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,6 +32,9 @@ app.use('/auth', require('./routes/auth.routes'));
 app.use('/organizations', require('./routes/organizations.routes'));
 app.use('/users', require('./routes/users.routes'));
 app.use('/platform', require('./routes/platform.routes'));
+
+// Global Error Handler
+app.use(errorHandler);
 
 // Start server
 if (require.main === module) {
