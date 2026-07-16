@@ -1,6 +1,7 @@
 const Organization = require('../models/Organization');
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
+const apiResponse = require('../utils/apiResponse');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { generateAccessToken } = require('../utils/jwt');
 const { issueRefreshToken, rotateRefreshToken, hashToken } = require('../services/refreshTokenService');
@@ -109,9 +110,9 @@ async function register(req, res, next) {
     const refreshToken = await issueRefreshToken(user._id, org._id);
 
     // 6. Return Response
-    return res.status(201).json({
-      success: true,
-      data: {
+    return apiResponse.success(
+      res,
+      {
         organization: {
           id: org._id.toString(),
           name: org.name,
@@ -124,8 +125,10 @@ async function register(req, res, next) {
         },
         accessToken,
         refreshToken
-      }
-    });
+      },
+      null,
+      201
+    );
 
   } catch (err) {
     // Cleanup created organization if user creation fails
@@ -201,9 +204,9 @@ async function login(req, res, next) {
 
     const refreshToken = await issueRefreshToken(user._id, user.orgId);
 
-    return res.status(200).json({
-      success: true,
-      data: {
+    return apiResponse.success(
+      res,
+      {
         user: {
           id: user._id.toString(),
           email: user.email,
@@ -212,8 +215,10 @@ async function login(req, res, next) {
         },
         accessToken,
         refreshToken
-      }
-    });
+      },
+      null,
+      200
+    );
 
   } catch (err) {
     return next(err);
@@ -296,13 +301,15 @@ async function refresh(req, res, next) {
       role: user.role
     });
 
-    return res.status(200).json({
-      success: true,
-      data: {
+    return apiResponse.success(
+      res,
+      {
         accessToken,
         refreshToken: newRefreshToken
-      }
-    });
+      },
+      null,
+      200
+    );
 
   } catch (err) {
     return next(err);
@@ -349,7 +356,7 @@ async function logout(req, res, next) {
       await storedToken.save();
     }
 
-    return res.status(204).end();
+    return apiResponse.success(res, null, null, 204);
 
   } catch (err) {
     return next(err);
