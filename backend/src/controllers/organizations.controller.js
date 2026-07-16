@@ -1,4 +1,5 @@
 const Organization = require('../models/Organization');
+const apiResponse = require('../utils/apiResponse');
 
 /**
  * Validates email format for notification defaults
@@ -40,17 +41,19 @@ async function getMyOrganization(req, res, next) {
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      data: {
+    return apiResponse.success(
+      res,
+      {
         id: org._id.toString(),
         name: org.name,
         slug: org.slug,
         plan: org.plan,
         notificationDefaults: org.notificationDefaults || { alertEmailRecipients: [] },
         createdAt: org.createdAt
-      }
-    });
+      },
+      null,
+      200
+    );
 
   } catch (err) {
     return next(err);
@@ -140,17 +143,19 @@ async function updateMyOrganization(req, res, next) {
 
     await org.save();
 
-    return res.status(200).json({
-      success: true,
-      data: {
+    return apiResponse.success(
+      res,
+      {
         id: org._id.toString(),
         name: org.name,
         slug: org.slug,
         plan: org.plan,
         notificationDefaults: org.notificationDefaults,
         createdAt: org.createdAt
-      }
-    });
+      },
+      null,
+      200
+    );
 
   } catch (err) {
     return next(err);
