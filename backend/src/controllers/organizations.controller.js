@@ -1,13 +1,7 @@
 const Organization = require('../models/Organization');
 const apiResponse = require('../utils/apiResponse');
 
-/**
- * Validates email format for notification defaults
- */
-function isValidEmail(email) {
-  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-  return email && emailRegex.test(email);
-}
+
 
 /**
  * GET /organizations/me
@@ -93,36 +87,7 @@ async function updateMyOrganization(req, res, next) {
       });
     }
 
-    // 1. Validate inputs
-    const errors = [];
 
-    if (name !== undefined) {
-      if (typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100) {
-        errors.push('Organization name must be between 2 and 100 characters');
-      }
-    }
-
-    if (notificationDefaults !== undefined) {
-      if (!notificationDefaults || !Array.isArray(notificationDefaults.alertEmailRecipients)) {
-        errors.push('notificationDefaults.alertEmailRecipients must be an array of email addresses');
-      } else {
-        const invalidEmails = notificationDefaults.alertEmailRecipients.filter(email => !isValidEmail(email));
-        if (invalidEmails.length > 0) {
-          errors.push(`Invalid email formats detected: ${invalidEmails.join(', ')}`);
-        }
-      }
-    }
-
-    if (errors.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Validation failed',
-          details: errors
-        }
-      });
-    }
 
     // 2. Perform updates
     if (name !== undefined) {

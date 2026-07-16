@@ -264,7 +264,7 @@ describe('Organization Profile Endpoints Integration Tests', () => {
       assert.strictEqual(fetchBody.data.name, 'Acme Corp');
     });
 
-    test('should return 400 VALIDATION_ERROR on invalid name length or email format', async () => {
+    test('should return 422 VALIDATION_ERROR on invalid name length or email format', async () => {
       // 1. Name too short
       const resShortName = await fetch(`${baseUrl}/organizations/me`, {
         method: 'PUT',
@@ -274,7 +274,7 @@ describe('Organization Profile Endpoints Integration Tests', () => {
         },
         body: JSON.stringify({ name: 'A' })
       });
-      assert.strictEqual(resShortName.status, 400);
+      assert.strictEqual(resShortName.status, 422);
 
       // 2. Invalid email format
       const resBadEmail = await fetch(`${baseUrl}/organizations/me`, {
@@ -287,7 +287,7 @@ describe('Organization Profile Endpoints Integration Tests', () => {
           notificationDefaults: { alertEmailRecipients: ['not-an-email'] }
         })
       });
-      assert.strictEqual(resBadEmail.status, 400);
+      assert.strictEqual(resBadEmail.status, 422);
       const badEmailBody = await resBadEmail.json();
       assert.strictEqual(badEmailBody.success, false);
       assert.strictEqual(badEmailBody.error.code, 'VALIDATION_ERROR');
