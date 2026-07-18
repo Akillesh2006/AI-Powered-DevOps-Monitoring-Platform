@@ -8,6 +8,8 @@ const {
   scopedCreate,
   scopedDeleteOne
 } = require('../data/scopedQuery');
+const ApiError = require('../utils/apiError');
+const apiResponse = require('../utils/apiResponse');
 
 /**
  * Validates email format
@@ -426,8 +428,41 @@ async function updateSelfProfile(req, res, next) {
   }
 }
 
+/**
+ * GET /users/:id
+ * 
+ * Retrieves a single user by ID, scoped to the caller's organization.
+ */
+async function getUser(req, res, next) {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return next(new ApiError(404, 'USER_NOT_FOUND', 'User not found in organization', []));
+  }
+
+  try {
+    const user = await scopedFindOne(User, req.context, { _id: id }).select('-passwordHash');
+    if (!user) {
+      throw new ApiError(404, 'USER_NOT_FOUND', 'User not found in organization', []);
+    }
+
+    const userObj = user.toObject ? user.toObject() : { ...user };
+    delete userObj.passwordHash;
+
+    if (userObj._id) {
+      userObj.id = userObj._id.toString();
+    }
+
+    return apiResponse.success(res, userObj, null, 200);
+
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   getUsers,
+  getUser,
   inviteUser,
   updateUserRole,
   deleteUser,
