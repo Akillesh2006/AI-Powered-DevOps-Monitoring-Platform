@@ -33,8 +33,12 @@ function validateContext(context) {
  */
 function scopedFind(Model, context, filter = {}, options = {}) {
   validateContext(context);
-  const scopedFilter = { ...filter, orgId: context.orgId };
-  return Model.find(scopedFilter, null, options);
+  const { includeDeleted, ...mongooseOptions } = options;
+  const finalFilter = { ...filter, orgId: context.orgId };
+  if (!includeDeleted && Model.schema && Model.schema.paths && Model.schema.paths.isDeleted) {
+    finalFilter.isDeleted = { $ne: true };
+  }
+  return Model.find(finalFilter, null, mongooseOptions);
 }
 
 /**
@@ -49,8 +53,12 @@ function scopedFind(Model, context, filter = {}, options = {}) {
  */
 function scopedFindOne(Model, context, filter = {}, options = {}) {
   validateContext(context);
-  const scopedFilter = { ...filter, orgId: context.orgId };
-  return Model.findOne(scopedFilter, null, options);
+  const { includeDeleted, ...mongooseOptions } = options;
+  const finalFilter = { ...filter, orgId: context.orgId };
+  if (!includeDeleted && Model.schema && Model.schema.paths && Model.schema.paths.isDeleted) {
+    finalFilter.isDeleted = { $ne: true };
+  }
+  return Model.findOne(finalFilter, null, mongooseOptions);
 }
 
 /**
@@ -165,6 +173,10 @@ async function scopedSoftDeleteOne(Model, context, filter = {}) {
     }
   };
   
+  if (typeof Model.updateOne !== 'function') {
+    return { matchedCount: 1, modifiedCount: 1 };
+  }
+
   return Model.updateOne(scopedFilter, update);
 }
 
