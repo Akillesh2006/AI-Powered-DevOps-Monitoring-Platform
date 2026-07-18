@@ -144,6 +144,30 @@ async function scopedDeleteMany(Model, context, filter = {}) {
   return Model.deleteMany(scopedFilter);
 }
 
+/**
+ * Scoped soft delete query.
+ * Always overrides orgId in the search filter with context.orgId.
+ * Sets isDeleted: true and deletedAt: new Date() on the target document.
+ * 
+ * @param {Object} Model - Mongoose model class
+ * @param {Object} context - Request context { userId, orgId, role }
+ * @param {Object} filter - Search filters to identify target document
+ * @returns {Promise<Object>} Update operation metadata
+ */
+async function scopedSoftDeleteOne(Model, context, filter = {}) {
+  validateContext(context);
+  const scopedFilter = { ...filter, orgId: context.orgId };
+  
+  const update = {
+    $set: {
+      isDeleted: true,
+      deletedAt: new Date()
+    }
+  };
+  
+  return Model.updateOne(scopedFilter, update);
+}
+
 module.exports = {
   scopedFind,
   scopedFindOne,
@@ -151,5 +175,6 @@ module.exports = {
   scopedUpdateOne,
   scopedUpdateMany,
   scopedDeleteOne,
-  scopedDeleteMany
+  scopedDeleteMany,
+  scopedSoftDeleteOne
 };
