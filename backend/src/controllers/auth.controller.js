@@ -196,6 +196,17 @@ async function login(req, res, next) {
       });
     }
 
+    if (user.isDeleted) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Account no longer exists',
+          details: []
+        }
+      });
+    }
+
     const accessToken = generateAccessToken({
       userId: user._id,
       orgId: user.orgId,
@@ -284,7 +295,7 @@ async function refresh(req, res, next) {
     }
 
     const user = await User.findById(storedToken.userId);
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || user.isDeleted) {
       return res.status(401).json({
         success: false,
         error: {
