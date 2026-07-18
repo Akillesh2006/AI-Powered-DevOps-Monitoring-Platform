@@ -8,6 +8,7 @@ const {
   scopedCreate,
   scopedDeleteOne
 } = require('../data/scopedQuery');
+const { parseListParams } = require('../utils/queryHelpers');
 const ApiError = require('../utils/apiError');
 const apiResponse = require('../utils/apiResponse');
 
@@ -26,16 +27,30 @@ function isValidEmail(email) {
  */
 async function getUsers(req, res, next) {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 25;
+    const { filter, search, page, limit } = parseListParams(req.query, {
+      filterable: ['role', 'isActive'],
+      searchable: ['email', 'name']
+    });
+
     const skip = (page - 1) * limit;
 
-    const query = scopedFind(User, req.context, {})
+    const queryConditions = {};
+    if (Object.keys(filter).length > 0 && search) {
+      queryConditions.$and = [filter, search];
+    } else if (Object.keys(filter).length > 0) {
+      Object.assign(queryConditions, filter);
+    } else if (search) {
+      Object.assign(queryConditions, search);
+    }
+
+    const query = scopedFind(User, req.context, queryConditions)
       .skip(skip)
       .limit(limit);
 
     const users = await query;
-    const total = await User.countDocuments({ orgId: req.context.orgId });
+
+    const countFilter = { ...queryConditions, orgId: req.context.orgId };
+    const total = await User.countDocuments(countFilter);
     const totalPages = Math.ceil(total / limit);
 
     const data = users.map(user => ({
