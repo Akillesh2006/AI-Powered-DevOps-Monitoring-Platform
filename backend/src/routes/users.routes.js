@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getUsers,
+  getUser,
   inviteUser,
   updateUserRole,
   deleteUser,
@@ -28,5 +29,8 @@ router.patch('/:id/role', authenticate, authorize('users', 'change_role'), updat
 
 // DELETE /users/:id - Deactivate/remove a user from the org
 router.delete('/:id', authenticate, authorize('users', 'delete'), deleteUser);
+
+// GET /users/:id - Retrieve a user by ID, scoped to caller's org
+router.get('/:id', authenticate, authorize('users', 'list'), getUser);
 
 module.exports = router;
