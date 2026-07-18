@@ -6,7 +6,8 @@ const {
   scopedFind,
   scopedFindOne,
   scopedCreate,
-  scopedDeleteOne
+  scopedDeleteOne,
+  scopedSoftDeleteOne
 } = require('../data/scopedQuery');
 const { parseListParams } = require('../utils/queryHelpers');
 const ApiError = require('../utils/apiError');
@@ -289,8 +290,8 @@ async function deleteUser(req, res, next) {
       }
     }
 
-    // 3. Hard delete using the scoped delete wrapper
-    await scopedDeleteOne(User, req.context, { _id: id });
+    // 3. Soft delete using the scoped delete wrapper
+    await scopedSoftDeleteOne(User, req.context, { _id: id });
 
     return res.status(204).end();
 

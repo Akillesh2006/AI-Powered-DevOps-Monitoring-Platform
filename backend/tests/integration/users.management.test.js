@@ -76,6 +76,22 @@ mockUserModel.deleteOne = async function(query) {
   });
   return { deletedCount: initialLength - mockUserDB.length };
 };
+mockUserModel.updateOne = async function(query, update) {
+  const doc = mockUserDB.find(user => {
+    return Object.keys(query).every(key => {
+      if (!user[key] || !query[key]) return false;
+      return user[key].toString() === query[key].toString();
+    });
+  });
+
+  if (doc) {
+    if (update.$set) {
+      Object.assign(doc, update.$set);
+    }
+    return { matchedCount: 1, modifiedCount: 1 };
+  }
+  return { matchedCount: 0, modifiedCount: 0 };
+};
 
 // Override mongoose.model to resolve mock models
 mongoose.model = function(name) {
@@ -338,9 +354,10 @@ describe('User Management Endpoints Integration Tests', () => {
 
       assert.strictEqual(response.status, 204);
 
-      // Verify removed from mock db
+      // Verify soft-deleted in mock db
       const found = mockUserDB.find(x => x._id.toString() === userEngineerA._id.toString());
-      assert.strictEqual(found, undefined);
+      assert.ok(found);
+      assert.strictEqual(found.isDeleted, true);
     });
 
     test('should return 400 when attempting to delete the last remaining org_admin', async () => {
