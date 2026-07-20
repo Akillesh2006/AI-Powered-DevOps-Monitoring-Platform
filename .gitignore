@@ -61,3 +61,8 @@ models/*.pkl
 models/*.h5
 models/*.pb
 models/*.onnx
+
+# Implementation Tasks
+docs/implementation/M1_IMPLEMENTATION_TASKS.md
+docs/implementation/M2_IMPLEMENTATION_TASKS.md
+
