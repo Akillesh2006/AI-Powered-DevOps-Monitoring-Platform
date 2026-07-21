@@ -32,6 +32,7 @@ app.use('/auth', require('./routes/auth.routes'));
 app.use('/organizations', require('./routes/organizations.routes'));
 app.use('/users', require('./routes/users.routes'));
 app.use('/platform', require('./routes/platform.routes'));
+app.use('/audit-logs', require('./routes/auditLogs.routes'));
 
 // Global Error Handler
 app.use(errorHandler);
