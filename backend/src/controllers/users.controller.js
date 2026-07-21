@@ -138,6 +138,15 @@ async function inviteUser(req, res, next) {
       isActive: true
     });
 
+    logAudit({
+      orgId: req.context.orgId,
+      actorUserId: req.context.userId,
+      action: 'user.invited',
+      targetType: 'User',
+      targetId: newUser._id,
+      metadata: { invitedRole: cleanRole }
+    });
+
     return res.status(201).json({
       success: true,
       data: {
