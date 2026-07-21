@@ -12,6 +12,7 @@ const {
 const { parseListParams } = require('../utils/queryHelpers');
 const ApiError = require('../utils/apiError');
 const apiResponse = require('../utils/apiResponse');
+const { logAudit } = require('../services/auditLogger.service');
 
 /**
  * Validates email format
@@ -220,8 +221,18 @@ async function updateUserRole(req, res, next) {
     }
 
     // 3. Update and save
+    const fromRole = targetUser.role;
     targetUser.role = cleanRole;
     await targetUser.save();
+
+    logAudit({
+      orgId: req.context.orgId,
+      actorUserId: req.context.userId,
+      action: 'user.role_changed',
+      targetType: 'User',
+      targetId: targetUser._id,
+      metadata: { fromRole, toRole: cleanRole }
+    });
 
     return res.status(200).json({
       success: true,
