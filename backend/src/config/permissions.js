@@ -17,7 +17,8 @@ const permissions = {
     organization: ['delete', 'list_platform', 'health_platform'],
     users: ['read_self', 'update_self', 'suspend_admin'],
     dashboards: ['read_platform'],
-    notifications: ['update_self_preferences']
+    notifications: ['update_self_preferences'],
+    audit: ['read']
   },
   org_admin: {
     organization: ['read', 'update'],
@@ -28,7 +29,8 @@ const permissions = {
     alerts: ['read', 'create_rule', 'update_rule', 'acknowledge', 'resolve', 'delete'],
     notifications: ['receive_email', 'receive_in_app', 'update_self_preferences', 'update_org_defaults'],
     dashboards: ['read_org', 'update_layout'],
-    reports: ['export_metrics', 'export_alerts', 'export_anomalies']
+    reports: ['export_metrics', 'export_alerts', 'export_anomalies'],
+    audit: ['read']
   },
   devops_engineer: {
     organization: ['read'],
