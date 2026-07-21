@@ -1,5 +1,6 @@
 const Organization = require('../models/Organization');
 const apiResponse = require('../utils/apiResponse');
+const { logAudit } = require('../services/auditLogger.service');
 
 
 
@@ -107,6 +108,15 @@ async function updateMyOrganization(req, res, next) {
     }
 
     await org.save();
+
+    logAudit({
+      orgId: req.context.orgId,
+      actorUserId: req.context.userId,
+      action: 'org.updated',
+      targetType: 'Organization',
+      targetId: req.context.orgId,
+      metadata: { updatedFields: Object.keys(req.body) }
+    });
 
     return apiResponse.success(
       res,
