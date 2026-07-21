@@ -304,6 +304,15 @@ async function deleteUser(req, res, next) {
     // 3. Soft delete using the scoped delete wrapper
     await scopedSoftDeleteOne(User, req.context, { _id: id });
 
+    logAudit({
+      orgId: req.context.orgId,
+      actorUserId: req.context.userId,
+      action: 'user.deleted',
+      targetType: 'User',
+      targetId: id,
+      metadata: {}
+    });
+
     return res.status(204).end();
 
   } catch (err) {
